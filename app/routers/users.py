@@ -1,15 +1,12 @@
 from fastapi import APIRouter, HTTPException, Depends, Request
-from fastapi.security import OAuth2PasswordBearer
 from fastapi.responses import JSONResponse
 from sqlmodel import Session, select
 from app.models import User
-from app.auth import hash_password, verify_password, create_access_token, decode_access_token
+from app.auth import hash_password, verify_password, create_access_token, decode_access_token, oauth2_scheme
 from app.database import get_session
 from datetime import datetime
 
 router = APIRouter(prefix="/users", tags=["users"])
-
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="users/login")
 
 
 @router.post("/register")
@@ -57,11 +54,16 @@ def login_user(
 
 
 @router.post("/logout")
-def logout_user(request: Request, token: str = Depends(oauth2_scheme)):
+def logout_user(request: Request):
     """
     Logs out the user by adding their current token to the revoked tokens blacklist.
     """
-    payload = decode_access_token()
+    authorization: str = request.headers.get("Authorization")
+    if not authorization or not authorization.startswith("Bearer "):
+        raise HTTPException(status_code=401, detail="No valid token provided")
+
+    token = authorization.split("Bearer ")[1]
+    payload = decode_access_token(token)
     if not payload or "sub" not in payload:
         raise HTTPException(status_code=401, detail="Invalid token")
 
