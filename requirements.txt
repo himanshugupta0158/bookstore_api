@@ -1,0 +1,5 @@
+fastapi[all]
+pyjwt
+passlib[bcrypt]
+sqlmodel
+python-jose
